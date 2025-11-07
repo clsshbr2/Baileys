@@ -56,6 +56,8 @@ import {
 import { USyncQuery, USyncUser } from '../WAUSync'
 import { makeNewsletterSocket } from './newsletter'
 
+var ListType = proto.Message.ListMessage.ListType;
+
 export const makeMessagesSocket = (config: SocketConfig) => {
 	const {
 		logger,
@@ -914,7 +916,7 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 			}
 
 			if (shouldIncludeDeviceIdentity) {
-				;(stanza.content as BinaryNode[]).push({
+				; (stanza.content as BinaryNode[]).push({
 					tag: 'device-identity',
 					attrs: {},
 					content: encodeSignedDeviceIdentity(authState.creds.account!, true)
@@ -923,8 +925,24 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 				logger.debug({ jid }, 'adding device identity')
 			}
 
+			const buttonType = getButtonType(message);
+			if (buttonType) {
+				(stanza.content as BinaryNode[]).push({
+					tag: 'biz',
+					attrs: {},
+					content: [
+						{
+							tag: buttonType,
+							attrs: getButtonArgs(message),
+						}
+					]
+				});
+				logger.debug({ jid }, 'adding business node');
+			}
+
+
 			if (additionalNodes && additionalNodes.length > 0) {
-				;(stanza.content as BinaryNode[]).push(...additionalNodes)
+				; (stanza.content as BinaryNode[]).push(...additionalNodes)
 			}
 
 			logger.debug({ msgId }, `sending message to ${participants.length} devices`)
@@ -939,6 +957,42 @@ export const makeMessagesSocket = (config: SocketConfig) => {
 
 		return msgId
 	}
+
+	const getButtonType = (message: proto.IMessage) => {
+		if (message.buttonsMessage) {
+			return 'buttons';
+		}
+		else if (message.buttonsResponseMessage) {
+			return 'buttons_response';
+		}
+		else if (message.interactiveResponseMessage) {
+			return 'interactive_response';
+		}
+		else if (message.listMessage) {
+			return 'list';
+		}
+		else if (message.listResponseMessage) {
+			return 'list_response';
+		}
+	};
+
+	const getButtonArgs = (message: proto.IMessage): { [key: string]: string } => {
+		if (message.templateMessage) {
+			// TODO: Add attributes
+			return {};
+		}
+		else if (message.listMessage) {
+			const type = message.listMessage.listType;
+			if (!type) {
+				throw new Boom('Expected list type inside message');
+			}
+			return { v: '2', type: ListType[type].toLowerCase() };
+		}
+		else {
+			return {};
+		}
+	};
+
 
 	const getMessageType = (message: proto.IMessage) => {
 		if (message.pollCreationMessage || message.pollCreationMessageV2 || message.pollCreationMessageV3) {

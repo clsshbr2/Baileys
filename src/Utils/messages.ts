@@ -576,6 +576,9 @@ export const generateWAMessageContent = async (
 				initiatedByMe: true
 			}
 		}
+	} else if ('listMessage' in message && !!message.listMessage) {
+		m = { listMessage: WAProto.Message.ListMessage.fromObject(message.listMessage) };
+
 	} else {
 		m = await prepareWAMessageMedia(message, options)
 	}
