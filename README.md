@@ -14,7 +14,7 @@
 > I made a survey for users of the project to ask questions, and provide Baileys valuable insights regarding its users. I will be publishing the results of this form (after filtering) as well so we can study and understand where we need to work.
 > 
 > The survey is anonymous and requires no personal info at all. You are required to sign-in with Google to keep responses to one person. You are able to edit your response after you submit. The deadline for this form is September 30, 2025.
-> 
+>  
 > I encourage you to put the effort, all it takes is 5-10 minutes and you get to ask me any questions you have.
 > 
 > \- Rajeh (purpshell)
