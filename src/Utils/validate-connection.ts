@@ -1,12 +1,7 @@
 import { Boom } from '@hapi/boom'
 import { createHash } from 'crypto'
 import { proto } from '../../WAProto/index.js'
-import {
-	KEY_BUNDLE_TYPE,
-	WA_ADV_ACCOUNT_SIG_PREFIX,
-	WA_ADV_DEVICE_SIG_PREFIX,
-	WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX
-} from '../Defaults'
+import { KEY_BUNDLE_TYPE } from '../Defaults'
 import type { AuthenticationCreds, SignalCreds, SocketConfig } from '../Types'
 import { type BinaryNode, getBinaryNodeChild, jidDecode, S_WHATSAPP_NET } from '../WABinary'
 import { Curve, hmacSign } from './crypto'
@@ -26,7 +21,6 @@ const getUserAgent = (config: SocketConfig): proto.ClientPayload.IUserAgent => {
 		device: 'Desktop',
 		osBuildNumber: '0.1',
 		localeLanguageIso6391: 'en',
-
 		mnc: '000',
 		mcc: '000',
 		localeCountryIso31661Alpha2: config.countryCode
@@ -40,11 +34,7 @@ const PLATFORM_MAP = {
 
 const getWebInfo = (config: SocketConfig): proto.ClientPayload.IWebInfo => {
 	let webSubPlatform = proto.ClientPayload.WebInfo.WebSubPlatform.WEB_BROWSER
-	if (
-		config.syncFullHistory &&
-		PLATFORM_MAP[config.browser[0] as keyof typeof PLATFORM_MAP] &&
-		config.browser[1] === 'Desktop'
-	) {
+	if (config.syncFullHistory && PLATFORM_MAP[config.browser[0] as keyof typeof PLATFORM_MAP]) {
 		webSubPlatform = PLATFORM_MAP[config.browser[0] as keyof typeof PLATFORM_MAP]
 	}
 
@@ -67,12 +57,10 @@ export const generateLoginNode = (userJid: string, config: SocketConfig): proto.
 	const { user, device } = jidDecode(userJid)!
 	const payload: proto.IClientPayload = {
 		...getClientPayload(config),
-		passive: true,
+		passive: false,
 		pull: true,
 		username: +user,
-		device: device,
-		// TODO: investigate (hard set as false atm)
-		lidDbMigrated: false
+		device: device
 	}
 	return proto.ClientPayload.fromObject(payload)
 }
@@ -81,7 +69,7 @@ const getPlatformType = (platform: string): proto.DeviceProps.PlatformType => {
 	const platformType = platform.toUpperCase()
 	return (
 		proto.DeviceProps.PlatformType[platformType as keyof typeof proto.DeviceProps.PlatformType] ||
-		proto.DeviceProps.PlatformType.CHROME
+		proto.DeviceProps.PlatformType.DESKTOP
 	)
 }
 
@@ -112,15 +100,7 @@ export const generateRegistrationNode = (
 			supportFbidBotChatHistory: true,
 			supportAddOnHistorySyncMigration: undefined,
 			supportMessageAssociation: true,
-			supportGroupHistory: false,
-			onDemandReady: undefined,
-			supportGuestChat: undefined
 		},
-		version: {
-			primary: 10,
-			secondary: 15,
-			tertiary: 7
-		}
 	}
 
 	const companionProto = proto.DeviceProps.encode(companion).finish()
@@ -167,15 +147,11 @@ export const configureSuccessfulPairing = (
 
 	const bizName = businessNode?.attrs.name
 	const jid = deviceNode.attrs.jid
-	const lid = deviceNode.attrs.lid
 
 	const { details, hmac, accountType } = proto.ADVSignedDeviceIdentityHMAC.decode(deviceIdentityNode.content as Buffer)
+	const isHostedAccount = accountType !== undefined && accountType === proto.ADVEncryptionType.HOSTED
 
-	let hmacPrefix = Buffer.from([])
-	if (accountType !== undefined && accountType === proto.ADVEncryptionType.HOSTED) {
-		hmacPrefix = WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX
-	}
-
+	const hmacPrefix = isHostedAccount ? Buffer.from([6, 5]) : Buffer.alloc(0)
 	const advSign = hmacSign(Buffer.concat([hmacPrefix, details!]), Buffer.from(advSecretKey, 'base64'))
 	if (Buffer.compare(hmac!, advSign) !== 0) {
 		throw new Boom('Invalid account signature')
@@ -183,28 +159,19 @@ export const configureSuccessfulPairing = (
 
 	const account = proto.ADVSignedDeviceIdentity.decode(details!)
 	const { accountSignatureKey, accountSignature, details: deviceDetails } = account
-
-	const deviceIdentity = proto.ADVDeviceIdentity.decode(deviceDetails!)
-
-	const accountSignaturePrefix =
-		deviceIdentity.deviceType === proto.ADVEncryptionType.HOSTED
-			? WA_ADV_HOSTED_ACCOUNT_SIG_PREFIX
-			: WA_ADV_ACCOUNT_SIG_PREFIX
-	const accountMsg = Buffer.concat([accountSignaturePrefix, deviceDetails!, signedIdentityKey.public])
+	const accountMsg = Buffer.concat([Buffer.from([6, 0]), deviceDetails!, signedIdentityKey.public])
 	if (!Curve.verify(accountSignatureKey!, accountMsg, accountSignature!)) {
 		throw new Boom('Failed to verify account signature')
 	}
 
-	const deviceMsg = Buffer.concat([
-		WA_ADV_DEVICE_SIG_PREFIX,
-		deviceDetails!,
-		signedIdentityKey.public,
-		accountSignatureKey!
-	])
+	const devicePrefix = isHostedAccount ? Buffer.from([6, 6]) : Buffer.from([6, 1])
+	const deviceMsg = Buffer.concat([devicePrefix, deviceDetails!, signedIdentityKey.public, accountSignatureKey!])
 	account.deviceSignature = Curve.sign(signedIdentityKey.private, deviceMsg)
 
-	const identity = createSignalIdentity(lid!, accountSignatureKey!)
+	const identity = createSignalIdentity(jid!, accountSignatureKey!)
 	const accountEnc = encodeSignedDeviceIdentity(account, false)
+
+	const deviceIdentity = proto.ADVDeviceIdentity.decode(account.details!)
 
 	const reply: BinaryNode = {
 		tag: 'iq',
@@ -230,7 +197,7 @@ export const configureSuccessfulPairing = (
 
 	const authUpdate: Partial<AuthenticationCreds> = {
 		account,
-		me: { id: jid!, name: bizName, lid },
+		me: { id: jid!, name: bizName },
 		signalIdentities: [...(signalIdentities || []), identity],
 		platform: platformNode?.attrs.name
 	}
