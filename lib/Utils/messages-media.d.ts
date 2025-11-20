@@ -9,7 +9,7 @@ import type { ILogger } from './logger.js';
 export declare const hkdfInfoKey: (type: MediaType) => string;
 export declare const getRawMediaUploadData: (media: WAMediaUpload, mediaType: MediaType, logger?: ILogger) => Promise<{
     filePath: string;
-    fileSha256: NonSharedBuffer;
+    fileSha256: Buffer<ArrayBufferLike>;
     fileLength: number;
 }>;
 /** generates all the keys required to encrypt/decrypt & sign a media message */
@@ -71,12 +71,12 @@ type EncryptedStreamOptions = {
     opts?: RequestInit;
 };
 export declare const encryptedStream: (media: WAMediaUpload, mediaType: MediaType, { logger, saveOriginalFileIfRequired, opts }?: EncryptedStreamOptions) => Promise<{
-    mediaKey: NonSharedBuffer;
+    mediaKey: Buffer<ArrayBufferLike>;
     originalFilePath: string | undefined;
     encFilePath: string;
     mac: Buffer<ArrayBuffer>;
-    fileEncSha256: NonSharedBuffer;
-    fileSha256: NonSharedBuffer;
+    fileEncSha256: Buffer<ArrayBufferLike>;
+    fileSha256: Buffer<ArrayBufferLike>;
     fileLength: number;
 }>;
 export type MediaDownloadOptions = {

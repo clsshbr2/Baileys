@@ -22,11 +22,11 @@ export declare const makeBusinessSocket: (config: SocketConfig) => {
     sendMessageAck: ({ tag, attrs, content }: BinaryNode, errorCode?: number) => Promise<void>;
     sendRetryRequest: (node: BinaryNode, forceIncludeKeys?: boolean) => Promise<void>;
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
-    fetchMessageHistory: (count: number, oldestMsgKey: import("../index.js").WAMessageKey, oldestMsgTimestamp: number | import("long").default) => Promise<string>;
+    fetchMessageHistory: (count: number, oldestMsgKey: import("../index.js").WAMessageKey, oldestMsgTimestamp: number | Long) => Promise<string>;
     requestPlaceholderResend: (messageKey: import("../index.js").WAMessageKey) => Promise<string | undefined>;
     messageRetryManager: import("../index.js").MessageRetryManager | null;
     getPrivacyTokens: (jids: string[]) => Promise<any>;
-    assertSessions: (jids: string[]) => Promise<boolean>;
+    assertSessions: (jids: string[], force?: boolean) => Promise<boolean>;
     relayMessage: (jid: string, message: import("../index.js").proto.IMessage, { messageId: msgId, participant, additionalAttributes, additionalNodes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: import("../index.js").MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: import("../index.js").MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: import("../index.js").WAMessageKey[], type: import("../index.js").MessageReceiptType) => Promise<void>;
@@ -175,6 +175,8 @@ export declare const makeBusinessSocket: (config: SocketConfig) => {
     onUnexpectedError: (err: Error | import("@hapi/boom").Boom, msg: string) => void;
     uploadPreKeys: (count?: number, retryCount?: number) => Promise<void>;
     uploadPreKeysToServerIfRequired: () => Promise<void>;
+    digestKeyBundle: () => Promise<void>;
+    rotateSignedPreKey: () => Promise<void>;
     requestPairingCode: (phoneNumber: string, customPairingCode?: string) => Promise<string>;
     wamBuffer: import("../index.js").BinaryInfo;
     waitForConnectionUpdate: (check: (u: Partial<import("../index.js").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;

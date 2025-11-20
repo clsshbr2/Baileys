@@ -77,11 +77,11 @@ export declare const makeCommunitiesSocket: (config: SocketConfig) => {
     sendMessageAck: ({ tag, attrs, content }: BinaryNode, errorCode?: number) => Promise<void>;
     sendRetryRequest: (node: BinaryNode, forceIncludeKeys?: boolean) => Promise<void>;
     rejectCall: (callId: string, callFrom: string) => Promise<void>;
-    fetchMessageHistory: (count: number, oldestMsgKey: WAMessageKey, oldestMsgTimestamp: number | import("long").default) => Promise<string>;
+    fetchMessageHistory: (count: number, oldestMsgKey: WAMessageKey, oldestMsgTimestamp: number | Long) => Promise<string>;
     requestPlaceholderResend: (messageKey: WAMessageKey) => Promise<string | undefined>;
     messageRetryManager: import("../Utils/index.js").MessageRetryManager | null;
     getPrivacyTokens: (jids: string[]) => Promise<any>;
-    assertSessions: (jids: string[]) => Promise<boolean>;
+    assertSessions: (jids: string[], force?: boolean) => Promise<boolean>;
     relayMessage: (jid: string, message: proto.IMessage, { messageId: msgId, participant, additionalAttributes, additionalNodes, useUserDevicesCache, useCachedGroupMetadata, statusJidList }: import("../Types/index.js").MessageRelayOptions) => Promise<string>;
     sendReceipt: (jid: string, participant: string | undefined, messageIds: string[], type: import("../Types/index.js").MessageReceiptType) => Promise<void>;
     sendReceipts: (keys: WAMessageKey[], type: import("../Types/index.js").MessageReceiptType) => Promise<void>;
@@ -230,6 +230,8 @@ export declare const makeCommunitiesSocket: (config: SocketConfig) => {
     onUnexpectedError: (err: Error | import("@hapi/boom").Boom, msg: string) => void;
     uploadPreKeys: (count?: number, retryCount?: number) => Promise<void>;
     uploadPreKeysToServerIfRequired: () => Promise<void>;
+    digestKeyBundle: () => Promise<void>;
+    rotateSignedPreKey: () => Promise<void>;
     requestPairingCode: (phoneNumber: string, customPairingCode?: string) => Promise<string>;
     wamBuffer: import("../index.js").BinaryInfo;
     waitForConnectionUpdate: (check: (u: Partial<import("../Types/index.js").ConnectionState>) => Promise<boolean | undefined>, timeoutMs?: number) => Promise<void>;
